@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reword</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma-rtl.min.css"
+    />
+    <style>
+      body {
+        background-color: #85ffbd;
+        background-image: linear-gradient(45deg, #85ffbd 0%, #fffb7d 100%);
+      }
+      textarea {
+        width: 100%;
+        height: 300px;
+      }
+      #result {
+        display: flex;
+        flex-wrap: wrap;
+      }
+      #result div {
+        margin: 1px;
+      }
+      span {
+        font-weight: bold;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="section">
+      <h1 class="title">Reword</h1>
+      <h2 class="subtitle">
+        Paste in text and click process to have interactive dictionary lookup.
+      </h2>
+      <textarea></textarea>
+      <button class="button">Process</button>
+      <button class="button">Reprocess</button>
+    </section>
+    <hr />
+    <section class="section">
+      <div id="result"></div>
+    </section>
+    <footer class="footer">
+      <div class="content has-text-centered">
+        <p>
+          <strong>Reword</strong> by Andrew Mestas. The source code is licensed
+          <a href="http://opensource.org/licenses/mit-license.php">MIT</a>. Made
+          with <a href="https://dictionaryapi.dev/">Free Dictionary API</a>
+        </p>
+      </div>
+    </footer>
+  </body>
+  <script>
+    const button = document.querySelectorAll("button");
+    const textarea = document.querySelector("textarea");
+    const result = document.getElementById("result");
+    const define = document.getElementsByClassName("define")[0];
+    const outer = document.getElementsByClassName("outer")[0];
+    const apiUrl = "https://api.dictionaryapi.dev/api/v2/entries/en/";
+
+    button[1].addEventListener("click", () => {
+      textarea.value = result.innerText.split("\n").join(" ");
+      button[0].click();
+    });
+    button[0].addEventListener("click", () => {
+      const value = textarea.value;
+      const words = value.split(" ");
+      result.innerHTML = "";
+      words.forEach((word) => {
+        const outerDiv = document.createElement("div");
+        const innerDiv = document.createElement("div");
+        innerDiv.innerText = word;
+        innerDiv.addEventListener("click", async (e) => {
+          const result = !!e.target.innerText.match(/[.,:;!?]$/);
+          let string = e.target.innerText;
+          if (result) {
+            let chars = string.split("");
+            chars.pop();
+            string = chars.join("");
+          }
+          const response = await fetch(apiUrl + string);
+          if (response.ok) {
+            const definitions = await response.json();
+            definitions.map((definition) => {
+              definition.meanings.map((meaning) => {
+                const button = document.createElement("button");
+                button.className = "button";
+                button.innerText = meaning.partOfSpeech;
+                outerDiv.appendChild(button);
+                button.addEventListener("click", (eButton) => {
+                  const collectedDefinitions = meaning.definitions.map((d) => {
+                    return d.definition;
+                  });
+                  const italicBold = document.createElement("span");
+                  italicBold.innerText =
+                    " ( " + collectedDefinitions.join(",") + " ) ";
+                  outerDiv.removeChild(eButton.target);
+                  e.target.appendChild(italicBold);
+                });
+              });
+            });
+          }
+        });
+        outerDiv.appendChild(innerDiv);
+        result.appendChild(outerDiv);
+      });
+    });
+  </script>
+</html>
